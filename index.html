@@ -21,34 +21,8 @@
             overflow: hidden;
         }
 
-        /* Login Screen */
-        #login-screen {
-            position: fixed;
-            inset: 0;
-            background: white;
-            z-index: 5000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .login-btn {
-            width: 200px;
-            padding: 15px;
-            border: 2px solid var(--my-bubble);
-            background: white;
-            color: var(--my-bubble);
-            border-radius: 30px;
-            font-weight: bold;
-            font-size: 18px;
-        }
-
-        /* App Layout */
         #app-container {
-            display: none; /* Hidden until login */
-            flex-direction: column;
+            display: flex; flex-direction: column;
             height: 100%; width: 100%;
             transition: filter 0.8s ease;
         }
@@ -119,8 +93,7 @@
         .blurred { filter: blur(15px); pointer-events: none; }
 
         #overlay {
-            position: fixed;
-            inset: 0;
+            position: fixed; inset: 0;
             background: rgba(255, 192, 203, 0.5);
             display: none;
             justify-content: center;
@@ -141,7 +114,7 @@
             position: fixed;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 50px;
+            font-size: 45px;
             font-weight: 900;
             color: var(--accent);
             display: none;
@@ -154,14 +127,8 @@
 </head>
 <body>
 
-<div id="login-screen">
-    <h2 style="color: var(--accent)">Who is opening this?</h2>
-    <button class="login-btn" onclick="login('mama')">Mama ❤️</button>
-    <button class="login-btn" onclick="login('lastborn')">Last Born 😎</button>
-</div>
-
 <div id="app-container">
-    <div id="header" id="user-header">Lastborn ❤️</div>
+    <div id="header">Lastborn ❤️</div>
     <div id="chat-window"></div>
     <div id="typing-box">
         <span class="dot"></span><span class="dot"></span><span class="dot"></span>
@@ -182,10 +149,13 @@
 <div id="final-text">IT'S A DATE!!! ❤️</div>
 
 <script>
+    // --- SETUP: PASTE YOUR FORMSPREE ID HERE ---
+    const formID = "YOUR_ID_HERE"; 
+
     const chat = document.getElementById('chat-window');
     const typing = document.getElementById('typing-box');
     const options = document.getElementById('options-container');
-    let currentUser = '';
+    let momChoices = [];
 
     const script = [
         { type: 'text', content: "Hey mama." },
@@ -210,17 +180,13 @@
 
     let step = 0;
 
-    function login(user) {
-        currentUser = user;
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('app-container').style.display = 'flex';
-        
-        if (user === 'lastborn') {
-            document.getElementById('header').innerText = "Viewer Mode (Mom's Answers)";
-            loadMomAnswers();
-        } else {
-            setTimeout(runScript, 1000);
-        }
+    async function sendEmailNotification(subject, message) {
+        if (!formID || formID === "YOUR_ID_HERE") return;
+        fetch(`https://formspree.io/f/${formID}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subject: subject, message: message })
+        });
     }
 
     async function runScript() {
@@ -229,19 +195,15 @@
 
         if (current.type === 'text') {
             typing.style.display = 'block';
-            chat.appendChild(typing); // Move typing dots to the bottom
+            chat.appendChild(typing);
             chat.scrollTop = chat.scrollHeight;
-            
             const typingTime = 2000 + (current.content.length * 25); 
             await new Promise(r => setTimeout(r, typingTime));
-            
             typing.style.display = 'none';
             addBubble(current.content, 'my');
-            
             const readingTime = 2200 + (current.content.length * 30);
             step++;
             setTimeout(runScript, readingTime);
-
         } else if (current.type === 'choice') {
             await new Promise(r => setTimeout(r, 2000));
             showChoices(current.choices);
@@ -271,12 +233,9 @@
             btn.onclick = async () => {
                 options.style.display = 'none';
                 addBubble(choice, 'mom');
-                
-                // Save answer for "Last Born" to see later
-                let answers = JSON.parse(localStorage.getItem('mom_responses') || "[]");
-                answers.push(choice);
-                localStorage.setItem('mom_responses', JSON.stringify(answers));
-
+                momChoices.push(choice);
+                // Background notification
+                sendEmailNotification("New Choice from Mama", `She picked: ${choice}`);
                 step++;
                 await new Promise(r => setTimeout(r, 4000));
                 runScript();
@@ -287,29 +246,21 @@
         chat.scrollTop = chat.scrollHeight;
     }
 
-    function loadMomAnswers() {
-        const saved = JSON.parse(localStorage.getItem('mom_responses') || "[]");
-        if(saved.length === 0) {
-            addBubble("No answers yet! Mama hasn't finished the game.", "my");
-        } else {
-            saved.forEach(ans => addBubble("She chose: " + ans, "mom"));
-        }
-    }
-
     function showValentine() {
         typing.style.display = 'none';
         document.getElementById('app-container').classList.add('blurred');
         document.getElementById('overlay').style.display = 'flex';
     }
 
-    function finish(choice) {
+    function finish(finalAnswer) {
         document.getElementById('overlay').style.display = 'none';
-        const final = document.getElementById('final-text');
-        final.style.display = 'block';
+        document.getElementById('final-text').style.display = 'block';
         
-        // Fixed Audio Link
+        // Final background report
+        sendEmailNotification("MAMA SAID YES!", `Full Plan: \n${momChoices.join('\n')}\nFinal Answer: ${finalAnswer}`);
+
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
-        audio.play().catch(e => console.log("Audio needs interaction"));
+        audio.play().catch(e => console.log("Audio play failed"));
 
         confetti({
             particleCount: 250,
@@ -318,6 +269,11 @@
             colors: ['#ff6b9d', '#ffffff', '#ff0000']
         });
     }
+
+    window.onload = () => {
+        sendEmailNotification("Game Started", "Mama just opened the website!");
+        setTimeout(runScript, 1500);
+    };
 </script>
 
 </body>
