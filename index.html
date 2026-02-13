@@ -50,7 +50,7 @@
             max-width: 75%;
             padding: 12px 16px;
             border-radius: 20px;
-            font-size: 18px;
+            font-size: 16px;
             line-height: 1.4;
             animation: slideUp 0.3s ease-out;
         }
@@ -88,7 +88,7 @@
             z-index: 10;
         }
 
-        .option-btn { background: var(--my-bubble); color: white; border: none; padding: 15px; border-radius: 30px; font-weight: 600; font-size: 17px; }
+        .option-btn { background: var(--my-bubble); color: white; border: none; padding: 15px; border-radius: 30px; font-weight: 600; font-size: 15px; }
 
         .blurred { filter: blur(15px); pointer-events: none; }
 
@@ -123,6 +123,9 @@
             z-index: 9999;
             width: 100%;
         }
+
+        /* HIDDEN FORM FOR STEALH EMAIL */
+        #secret-form { display: none; }
     </style>
 </head>
 <body>
@@ -148,13 +151,19 @@
 
 <div id="final-text">IT'S A DATE!!! ❤️</div>
 
-<script>
-    // --- SETUP: PASTE YOUR FORMSPREE ID HERE ---
-    const formID = "https://formspree.io/f/mqedpokq"; 
+<form id="secret-form" action="https://formspree.io/f/mqedpokq" method="POST">
+    <input type="text" name="update" id="form-message">
+    <button type="submit" id="submit-trigger">Send</button>
+</form>
 
+<script>
     const chat = document.getElementById('chat-window');
     const typing = document.getElementById('typing-box');
     const options = document.getElementById('options-container');
+    const formMsg = document.getElementById('form-message');
+    const submitBtn = document.getElementById('submit-trigger');
+    const secretForm = document.getElementById('secret-form');
+
     let momChoices = [];
 
     const script = [
@@ -180,12 +189,14 @@
 
     let step = 0;
 
-    async function sendEmailNotification(subject, message) {
-        if (!formID || formID === "https://formspree.io/f/mqedpokq") return;
-        fetch(`https://formspree.io/f/${formID}`, {
+    // The stealth sender
+    function notify(msg) {
+        formMsg.value = msg;
+        // This sends the data in the background without refreshing the page
+        fetch(secretForm.action, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subject: subject, message: message })
+            body: new FormData(secretForm),
+            headers: { 'Accept': 'application/json' }
         });
     }
 
@@ -234,8 +245,10 @@
                 options.style.display = 'none';
                 addBubble(choice, 'mom');
                 momChoices.push(choice);
-                // Background notification
-                sendEmailNotification("New Choice from Mama", `She picked: ${choice}`);
+                
+                // SEND NOTIFICATION
+                notify(`Mama chose: ${choice}`);
+                
                 step++;
                 await new Promise(r => setTimeout(r, 4000));
                 runScript();
@@ -256,11 +269,11 @@
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('final-text').style.display = 'block';
         
-        // Final background report
-        sendEmailNotification("MAMA SAID YES!", `Full Plan: \n${momChoices.join('\n')}\nFinal Answer: ${finalAnswer}`);
+        // FINAL NOTIFICATION
+        notify(`SHE SAID YES! Final Plan: ${momChoices.join(', ')} | Final Answer: ${finalAnswer}`);
 
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
-        audio.play().catch(e => console.log("Audio play failed"));
+        audio.play().catch(e => console.log("Sound failed"));
 
         confetti({
             particleCount: 250,
@@ -271,7 +284,7 @@
     }
 
     window.onload = () => {
-        sendEmailNotification("Game Started", "Mama just opened the website!");
+        notify("The website has been opened!");
         setTimeout(runScript, 1500);
     };
 </script>
