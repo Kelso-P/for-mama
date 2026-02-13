@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Messages</title>
+    <title>System Update</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
@@ -21,8 +21,34 @@
             overflow: hidden;
         }
 
+        /* Login Screen */
+        #login-screen {
+            position: fixed;
+            inset: 0;
+            background: white;
+            z-index: 5000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .login-btn {
+            width: 200px;
+            padding: 15px;
+            border: 2px solid var(--my-bubble);
+            background: white;
+            color: var(--my-bubble);
+            border-radius: 30px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* App Layout */
         #app-container {
-            display: flex; flex-direction: column;
+            display: none; /* Hidden until login */
+            flex-direction: column;
             height: 100%; width: 100%;
             transition: filter 0.8s ease;
         }
@@ -34,7 +60,6 @@
             font-weight: 600;
             border-bottom: 1px solid #ffe1e9;
             color: var(--accent);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         }
 
         #chat-window {
@@ -44,7 +69,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            padding-bottom: 120px;
+            padding-bottom: 150px;
         }
 
         .bubble {
@@ -53,28 +78,13 @@
             border-radius: 20px;
             font-size: 16px;
             line-height: 1.4;
-            position: relative;
             animation: slideUp 0.3s ease-out;
         }
 
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .my {
-            align-self: flex-start;
-            background: var(--my-bubble);
-            color: white;
-            border-bottom-left-radius: 4px;
-        }
-
-        .mom {
-            align-self: flex-end;
-            background: #f0f0f0;
-            color: #333;
-            border-bottom-right-radius: 4px;
-        }
+        .my { align-self: flex-start; background: var(--my-bubble); color: white; border-bottom-left-radius: 4px; }
+        .mom { align-self: flex-end; background: #f0f0f0; color: #333; border-bottom-right-radius: 4px; }
 
         #typing-box {
             display: none;
@@ -82,20 +92,13 @@
             background: #eee;
             padding: 10px 15px;
             border-radius: 20px;
+            margin-left: 15px;
             margin-bottom: 10px;
         }
 
-        .dot {
-            display: inline-block;
-            width: 6px; height: 6px;
-            background: #bbb;
-            border-radius: 50%;
-            margin-right: 3px;
-            animation: blink 1.4s infinite both;
-        }
+        .dot { display: inline-block; width: 6px; height: 6px; background: #bbb; border-radius: 50%; margin-right: 3px; animation: blink 1.4s infinite both; }
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
-
         @keyframes blink { 0% { opacity: .2; } 20% { opacity: 1; } 100% { opacity: .2; } }
 
         #options-container {
@@ -103,7 +106,6 @@
             bottom: 0; width: 100%;
             background: white;
             padding: 20px;
-            box-sizing: border-box;
             display: none;
             flex-direction: column;
             gap: 12px;
@@ -112,24 +114,13 @@
             z-index: 10;
         }
 
-        .option-btn {
-            background: var(--my-bubble);
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 15px;
-            cursor: pointer;
-            active { transform: scale(0.98); }
-        }
+        .option-btn { background: var(--my-bubble); color: white; border: none; padding: 15px; border-radius: 30px; font-weight: 600; font-size: 15px; }
 
         .blurred { filter: blur(15px); pointer-events: none; }
 
         #overlay {
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            inset: 0;
             background: rgba(255, 192, 203, 0.5);
             display: none;
             justify-content: center;
@@ -163,8 +154,14 @@
 </head>
 <body>
 
+<div id="login-screen">
+    <h2 style="color: var(--accent)">Who is opening this?</h2>
+    <button class="login-btn" onclick="login('mama')">Mama ❤️</button>
+    <button class="login-btn" onclick="login('lastborn')">Last Born 😎</button>
+</div>
+
 <div id="app-container">
-    <div id="header">Lastborn ❤️</div>
+    <div id="header" id="user-header">Lastborn ❤️</div>
     <div id="chat-window"></div>
     <div id="typing-box">
         <span class="dot"></span><span class="dot"></span><span class="dot"></span>
@@ -188,6 +185,7 @@
     const chat = document.getElementById('chat-window');
     const typing = document.getElementById('typing-box');
     const options = document.getElementById('options-container');
+    let currentUser = '';
 
     const script = [
         { type: 'text', content: "Hey mama." },
@@ -195,19 +193,15 @@
         { type: 'text', content: "I need your help with planning the whole thing out." },
         { type: 'text', content: "This is my first love😭.." },
         { type: 'choice', choices: ["What! I mean.. I didn't expect this but I guess I'll help?", "Sure! Happy to help"] },
-        
         { type: 'text', content: "Well.. I'm sorry to dissapoint you but it's a she.🤦‍♀️" },
         { type: 'text', content: "Thought you should know👀..." },
         { type: 'choice', choices: ["What!!!! Ohh noooo🤦‍♀️", "Okay?"] },
-
         { type: 'text', content: "👀Anyways, do you think it will be better to eat sushi or pasta or steak or a chicken meal?" },
         { type: 'choice', choices: ["Sushi 🍣", "Pasta 🍝", "Steak 🥩", "Chicken 🍗"] },
-
         { type: 'text', content: "What's the best gift to get her? Necklace, bracelet or watch?" },
         { type: 'text', content: "I want it to be something of sentimental value so she can always remember this day with." },
         { type: 'text', content: "I mean she's my first love😊... " },
         { type: 'choice', choices: ["Necklace 💎", "Bracelet ✨", "Watch ⌚"] },
-
         { type: 'text', content: "Ok, I think I have an idea of what to get now." },
         { type: 'text', content: "Hopefully she loves all of this😌." },
         { type: 'text', content: "Oh! One last question☝. So mama.." },
@@ -216,31 +210,45 @@
 
     let step = 0;
 
+    function login(user) {
+        currentUser = user;
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-container').style.display = 'flex';
+        
+        if (user === 'lastborn') {
+            document.getElementById('header').innerText = "Viewer Mode (Mom's Answers)";
+            loadMomAnswers();
+        } else {
+            setTimeout(runScript, 1000);
+        }
+    }
+
     async function runScript() {
         if (step >= script.length) return;
         const current = script[step];
 
         if (current.type === 'text') {
-            // Typing delay based on length
             typing.style.display = 'block';
+            chat.appendChild(typing); // Move typing dots to the bottom
             chat.scrollTop = chat.scrollHeight;
-            const typingTime = 2000 + (current.content.length * 20); 
+            
+            const typingTime = 2000 + (current.content.length * 25); 
             await new Promise(r => setTimeout(r, typingTime));
             
             typing.style.display = 'none';
             addBubble(current.content, 'my');
             
-            // Reading delay for her
-            const readingTime = 2200 + (current.content.length * 25);
+            const readingTime = 2200 + (current.content.length * 30);
             step++;
             setTimeout(runScript, readingTime);
 
         } else if (current.type === 'choice') {
-            // Short delay before showing options so she can read the question
             await new Promise(r => setTimeout(r, 2000));
             showChoices(current.choices);
         } else if (current.type === 'valentine') {
             typing.style.display = 'block';
+            chat.appendChild(typing);
+            chat.scrollTop = chat.scrollHeight;
             await new Promise(r => setTimeout(r, 3500));
             showValentine();
         }
@@ -263,8 +271,13 @@
             btn.onclick = async () => {
                 options.style.display = 'none';
                 addBubble(choice, 'mom');
+                
+                // Save answer for "Last Born" to see later
+                let answers = JSON.parse(localStorage.getItem('mom_responses') || "[]");
+                answers.push(choice);
+                localStorage.setItem('mom_responses', JSON.stringify(answers));
+
                 step++;
-                // 4 Second "Processing" delay after her answer
                 await new Promise(r => setTimeout(r, 4000));
                 runScript();
             };
@@ -272,6 +285,15 @@
         });
         options.style.display = 'flex';
         chat.scrollTop = chat.scrollHeight;
+    }
+
+    function loadMomAnswers() {
+        const saved = JSON.parse(localStorage.getItem('mom_responses') || "[]");
+        if(saved.length === 0) {
+            addBubble("No answers yet! Mama hasn't finished the game.", "my");
+        } else {
+            saved.forEach(ans => addBubble("She chose: " + ans, "mom"));
+        }
     }
 
     function showValentine() {
@@ -285,19 +307,17 @@
         const final = document.getElementById('final-text');
         final.style.display = 'block';
         
-        // Sound Effect
-        const audio = new Audio('https://www.myinstants.com/media/sounds/party-horn.mp3');
-        audio.play();
+        // Fixed Audio Link
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+        audio.play().catch(e => console.log("Audio needs interaction"));
 
         confetti({
-            particleCount: 200,
-            spread: 90,
+            particleCount: 250,
+            spread: 100,
             origin: { y: 0.6 },
             colors: ['#ff6b9d', '#ffffff', '#ff0000']
         });
     }
-
-    window.onload = () => setTimeout(runScript, 1500);
 </script>
 
 </body>
