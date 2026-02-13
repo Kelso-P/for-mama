@@ -88,7 +88,7 @@
             z-index: 10;
         }
 
-        .option-btn { background: var(--my-bubble); color: white; border: none; padding: 15px; border-radius: 30px; font-weight: 600; font-size: 15px; }
+        .option-btn { background: var(--my-bubble); color: white; border: none; padding: 15px; border-radius: 30px; font-weight: 600; font-size: 17px; }
 
         .blurred { filter: blur(15px); pointer-events: none; }
 
@@ -181,7 +181,7 @@
     let step = 0;
 
     async function sendEmailNotification(subject, message) {
-        if (!formID || formID === "YOUR_ID_HERE") return;
+        if (!formID || formID === "https://formspree.io/f/mqedpokq") return;
         fetch(`https://formspree.io/f/${formID}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
